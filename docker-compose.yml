@@ -1,0 +1,20 @@
+version: '3'
+services:
+  nginx:
+    container_name: some-nginx
+    image: nginx:1.13
+    restart: always
+    expose:
+      - 80
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - app
+  app:
+    restart: always
+    build:
+      context: .
+      dockerfile: .
+    environment:
+      - "endpoint=app"
+      - "response=hello world"
