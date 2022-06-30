@@ -4,17 +4,56 @@ services:
     container_name: some-nginx
     image: nginx:1.13
     restart: always
-    expose:
-      - 80
+    ports:
+      - "80:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
-      - app
-  app:
+      - login
+      - shop
+      - images
+  login:
     restart: always
     build:
       context: .
       dockerfile: .
+    ports:
+      - "8080:8080"
     environment:
-      - "endpoint=app"
-      - "response=hello world"
+      - "endpoint=login"
+      - "delay=300"
+      - "response=you've logged in"
+  shop:
+    restart: always
+    build:
+      context: .
+      dockerfile: .
+    ports:
+      - "8081:8080"
+    environment:
+      - "endpoint=shop"
+      - "delay=500"
+      - 'response={"teas": [{"product-name": "Earl Grey (loose)", "price": "4,20"}, {"product-name": "Darjeeling (loose)", "price": "6,90"}]}'
+      - "responseType=json"
+  images:
+    restart: always
+    build:
+      context: .
+      dockerfile: .
+    ports:
+      - "8082:8080"
+    environment:
+      - "endpoint=images"
+      - "response=reached images. # of calls: "
+      - "appendAmountOfCallsToResponse=true"
+  shop1:
+    restart: always
+    build:
+      context: .
+      dockerfile: .
+    ports:
+      - "8083:8080"
+    environment:
+      - "endpoint=shop/1"
+      - 'response={"product-name": "Earl Grey (loose)", "price": "4,20"}'
+      - "responseType=json"
