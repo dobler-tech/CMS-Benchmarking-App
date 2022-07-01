@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,8 +32,13 @@ public class Controller {
     @Value("${response:hello world}")
     private String defaultResponse;
 
+    @Value("${forwardCall}")
+    private String forwardCall;
+
     @Value("${responseType:text/plain}")
     private String responseType;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
 
     @GetMapping
@@ -41,8 +48,16 @@ public class Controller {
         int countForThisCall = getCounter.incrementAndGet();
 
         var response = defaultResponse;
-        if (appendAmountOfCallsToResponse) {
-            response += countForThisCall;
+        if (forwardCall.isBlank()) {
+            if (appendAmountOfCallsToResponse) {
+                response += countForThisCall;
+            }
+        } else {
+            final ResponseEntity<String> responseEntity = getCall();
+            if (responseEntity.getStatusCode().value() >= 400)
+                throw new IllegalArgumentException(String.format("Service call not successful %s", responseEntity.getBody()));
+
+            return responseEntity;
         }
 
         return wrapResponseWithMediaType(response);
@@ -55,14 +70,57 @@ public class Controller {
         int countForThisCall = postCounter.incrementAndGet();
 
         var response = defaultResponse;
-        if (appendAmountOfCallsToResponse) {
-            response += countForThisCall;
-        }
-        if (appendParamToResponse) {
-            response += param;
+        if (forwardCall.isBlank()) {
+            if (appendAmountOfCallsToResponse) {
+                response += countForThisCall;
+            }
+            if (appendParamToResponse) {
+                response += param;
+            }
+        } else {
+            final ResponseEntity<String> responseEntity = postCall(param);
+            if (responseEntity.getStatusCode().value() >= 400)
+                throw new IllegalArgumentException(String.format("Service call not successful %s", responseEntity.getBody()));
+
+            return responseEntity;
         }
 
         return wrapResponseWithMediaType(response);
+    }
+
+    private ResponseEntity<String> postCall(String param) {
+        ResponseEntity<String> responseEntity;
+        try {
+            LOGGER.debug("Using forwardCalling address {}", forwardCall);
+            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
+        } catch (RestClientException e) {
+            final var targetURL = fixLocalhost();
+            LOGGER.debug("Using forwardCalling address {}", targetURL);
+            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
+        }
+
+        return responseEntity;
+    }
+
+    private ResponseEntity<String> getCall() {
+
+        ResponseEntity<String> responseEntity;
+        try {
+            LOGGER.debug("Using forwardCalling address {}", forwardCall);
+            responseEntity = restTemplate.getForEntity(forwardCall, String.class);
+        } catch (RestClientException e) {
+            final var targetURL = fixLocalhost();
+            LOGGER.debug("Using forwardCalling address {}", targetURL);
+            responseEntity = restTemplate.getForEntity(targetURL, String.class);
+        }
+
+        return responseEntity;
+    }
+
+    private String fixLocalhost() {
+        return forwardCall.contains("localhost")
+                ? forwardCall.replace("localhost", "host.docker.internal")
+                : forwardCall;
     }
 
     private ResponseEntity<String> wrapResponseWithMediaType(String response) {

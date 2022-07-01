@@ -46,6 +46,7 @@ services:
       - "endpoint=images"
       - "response=reached images. # of calls: "
       - "appendAmountOfCallsToResponse=true"
+      - "logging.level.tech.dobler=DEBUG"
   shop1:
     restart: always
     build:
@@ -57,3 +58,14 @@ services:
       - "endpoint=shop/1"
       - 'response={"product-name": "Earl Grey (loose)", "price": "4,20"}'
       - "responseType=json"
+  landingpage:
+    restart: always
+    build:
+      context: .
+      dockerfile: .
+    ports:
+      - "8084:8080"
+    environment:
+      - "endpoint=index"
+      - "logging.level.tech.dobler=DEBUG"
+      - "forwardCall=http://images:8080/images/"
