@@ -18,9 +18,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class Controller {
+    //<editor-fold desc="FIELDS">
     private static final Logger LOGGER = LoggerFactory.getLogger(Controller.class);
     private static final AtomicInteger getCounter = new AtomicInteger();
     private static final AtomicInteger postCounter = new AtomicInteger();
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${delay}")
     private int delay;
@@ -38,16 +41,15 @@ public class Controller {
 
     @Value("${responseType:text/plain}")
     private String responseType;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
+    //</editor-fold>
 
     @GetMapping
     public ResponseEntity<String> get() throws InterruptedException {
+
         LOGGER.debug("Delaying get request for {}ms", delay);
         Thread.sleep(delay);
-        int countForThisCall = getCounter.incrementAndGet();
 
+        int countForThisCall = getCounter.incrementAndGet();
         var response = defaultResponse;
         if (forwardCall.isBlank()) {
             if (appendAmountOfCallsToResponse) {
@@ -62,46 +64,6 @@ public class Controller {
         }
 
         return wrapResponseWithMediaType(response);
-    }
-
-    @PostMapping
-    public ResponseEntity<String> post(@RequestParam Map<String, String> param) throws InterruptedException {
-        LOGGER.debug("Got params: {}", param);
-        LOGGER.debug("Delaying post request for {}ms", delay);
-        Thread.sleep(delay);
-        int countForThisCall = postCounter.incrementAndGet();
-
-        var response = defaultResponse;
-        if (forwardCall.isBlank()) {
-            if (appendAmountOfCallsToResponse) {
-                response += countForThisCall;
-            }
-            if (appendParamToResponse) {
-                response += param;
-            }
-        } else {
-            final ResponseEntity<String> responseEntity = postCall(param);
-            if (responseEntity.getStatusCode().value() >= 400)
-                throw new IllegalArgumentException(String.format("Service call not successful %s", responseEntity.getBody()));
-
-            return responseEntity;
-        }
-
-        return wrapResponseWithMediaType(response);
-    }
-
-    private ResponseEntity<String> postCall(Map<String, String> param) {
-        ResponseEntity<String> responseEntity;
-        try {
-            LOGGER.debug("Using forwardCalling address {}", forwardCall);
-            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
-        } catch (RestClientException e) {
-            final var targetURL = fixLocalhost();
-            LOGGER.debug("Using forwardCalling address {}", targetURL);
-            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
-        }
-
-        return responseEntity;
     }
 
     private ResponseEntity<String> getCall() {
@@ -148,4 +110,46 @@ public class Controller {
 
         return ResponseEntity.ok().headers(httpHeaders).body(response);
     }
+
+    //<editor-fold desc="POST Endpoint">
+    @PostMapping
+    public ResponseEntity<String> post(@RequestParam Map<String, String> param) throws InterruptedException {
+        LOGGER.debug("Got params: {}", param);
+        LOGGER.debug("Delaying post request for {}ms", delay);
+        Thread.sleep(delay);
+
+        int countForThisCall = postCounter.incrementAndGet();
+        var response = defaultResponse;
+        if (forwardCall.isBlank()) {
+            if (appendAmountOfCallsToResponse) {
+                response += countForThisCall;
+            }
+            if (appendParamToResponse) {
+                response += param;
+            }
+        } else {
+            final ResponseEntity<String> responseEntity = postCall(param);
+            if (responseEntity.getStatusCode().value() >= 400)
+                throw new IllegalArgumentException(String.format("Service call not successful %s", responseEntity.getBody()));
+
+            return responseEntity;
+        }
+
+        return wrapResponseWithMediaType(response);
+    }
+
+    private ResponseEntity<String> postCall(Map<String, String> param) {
+        ResponseEntity<String> responseEntity;
+        try {
+            LOGGER.debug("Using forwardCalling address {}", forwardCall);
+            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
+        } catch (RestClientException e) {
+            final var targetURL = fixLocalhost();
+            LOGGER.debug("Using forwardCalling address {}", targetURL);
+            responseEntity = restTemplate.postForEntity(forwardCall, param, String.class);
+        }
+
+        return responseEntity;
+    }
+    //</editor-fold>
 }
