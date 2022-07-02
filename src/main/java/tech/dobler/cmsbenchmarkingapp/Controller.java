@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
@@ -64,7 +65,8 @@ public class Controller {
     }
 
     @PostMapping
-    public ResponseEntity<String> post(@RequestParam String param) throws InterruptedException {
+    public ResponseEntity<String> post(@RequestParam Map<String, String> param) throws InterruptedException {
+        LOGGER.debug("Got params: {}", param);
         LOGGER.debug("Delaying post request for {}ms", delay);
         Thread.sleep(delay);
         int countForThisCall = postCounter.incrementAndGet();
@@ -88,7 +90,7 @@ public class Controller {
         return wrapResponseWithMediaType(response);
     }
 
-    private ResponseEntity<String> postCall(String param) {
+    private ResponseEntity<String> postCall(Map<String, String> param) {
         ResponseEntity<String> responseEntity;
         try {
             LOGGER.debug("Using forwardCalling address {}", forwardCall);

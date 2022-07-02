@@ -22,7 +22,7 @@ services:
     environment:
       - "endpoint=login"
       - "delay=300"
-      - "response=you've logged in"
+      - "response=you've logged in "
   shop:
     restart: always
     build:
@@ -69,3 +69,4 @@ services:
       - "endpoint=index"
       - "logging.level.tech.dobler=DEBUG"
       - "forwardCall=http://images:8080/images/"
+      - "appendParamToResponse=false"
