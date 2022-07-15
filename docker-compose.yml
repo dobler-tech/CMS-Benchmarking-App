@@ -11,7 +11,7 @@ services:
       - shop
       - images
   login:
-    image: vdwps/cmd-benchmarking-app:1.0.0
+    image: vdwps/cms-benchmarking-app:1.0.0
     ports:
       - "8080:8080"
     environment:
@@ -19,16 +19,18 @@ services:
       - "delay=300"
       - "response=you've logged in "
   shop:
-    image: vdwps/cmd-benchmarking-app:1.0.0
+    image: vdwps/cms-benchmarking-app:1.0.0
     ports:
       - "8081:8080"
     environment:
       - "endpoint=shop"
       - "delay=500"
-      - 'response={"teas": [{"product-name": "Earl Grey (loose)", "price": "4,20"}, {"product-name": "Darjeeling (loose)", "price": "6,90"}]}'
+      - 'response={"teas": [
+      {"product-name": "Earl Grey (loose)","price": "4,20"},
+      {"product-name": "Darjeeling (loose)", "price": "6,90"}]}'
       - "responseType=json"
   images:
-    image: vdwps/cmd-benchmarking-app:1.0.0
+    image: vdwps/cms-benchmarking-app:1.0.0
     ports:
       - "8082:8080"
     environment:
@@ -37,15 +39,16 @@ services:
       - "appendAmountOfCallsToResponse=true"
       - "logging.level.tech.dobler=DEBUG"
   shop1:
-    image: vdwps/cmd-benchmarking-app:1.0.0
+    image: vdwps/cms-benchmarking-app:1.0.0
     ports:
       - "8083:8080"
     environment:
       - "endpoint=shop/1"
-      - 'response={"product-name": "Earl Grey (loose)", "price": "4,20"}'
+      - 'response={
+      "product-name": "Earl Grey (loose)", "price": "4,20"}'
       - "responseType=json"
   landingpage:
-    image: vdwps/cmd-benchmarking-app:1.0.0
+    image: vdwps/cms-benchmarking-app:1.0.0
     ports:
       - "8084:8080"
     environment:
